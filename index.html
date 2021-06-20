@@ -1,0 +1,225 @@
+<html>
+    <head>
+        
+    </head>
+    <body style="background-color: transparent;">
+        <div class="tw-flex" style="margin-left: 20px;">
+            <div class="tw-flex tw-flex-col" id="ally_team" style="margin-top:auto">
+                <div class="round main-bracket" id="ally_team_input">
+
+                </div>
+            </div>
+            <div class="tw-flex tw-flex-col" id="enemy_team" style="margin-left: auto;margin-top:auto">
+                <div class="round main-bracket" id="enemy_team_input">
+                    
+                </div>
+            </div>
+        </div>
+    </body>
+    <script>
+        async function matches() {
+            var coregame = await fetch("http://127.0.0.1:5000/v1/core-game")
+            var coregamejson = await coregame.json()
+            var own_team_array = coregamejson.data.Players.filter(item => item.Subject == coregamejson.subject)
+            var own_team = own_team_array[0].TeamID
+            var ally_team = coregamejson.data.Players.filter(item => item.TeamID == own_team)
+            var enemy_team = coregamejson.data.Players.filter(item => item.TeamID != own_team)
+            for(let i = 0; ally_team.length > i; i++) {
+                var mmr = await fetch(`https://api.henrikdev.xyz/valorant/v1/by-puuid/mmr/eu/${ally_team[i].Subject}`)
+                var mmrjson = await mmr.json()
+                var name = await fetch(`http://127.0.0.1:5000/v1/get-name/${ally_team[i].Subject}`)
+                var namejson = await name.json()
+                var matchbracket = document.createElement("div")
+                matchbracket.className = "match"
+                matchbracket.style.cssText = `background-image: url("https://media.valorant-api.com/playercards/${ally_team[i].PlayerIdentity.PlayerCardID}/wideart.png");background-size: 320px 88px;`
+                var matchdata = document.createElement("a")
+                matchdata.className = "matchdata"
+                var time_results = document.createElement("div")
+                time_results.className = "time_result"
+                var image_agent = document.createElement("img")
+                image_agent.src = `https://media.valorant-api.com/agents/${ally_team[i].CharacterID}/displayicon.png`
+                image_agent.style.cssText = "height: 50px; width: 50px"
+                time_results.append(image_agent)
+                var teams = document.createElement("div")
+                teams.className = "teams"
+                var team = document.createElement("div")
+                var team2 = document.createElement("div")
+                var teamname = document.createElement("div")
+                var teamname2 = document.createElement("div")
+                team.className = "team"
+                team2.className = "team"
+                teamname.className = "team-name team-winner"
+                teamname2.className = "team-name"
+                teamname.innerHTML = `Rang: ${mmrjson.data.currenttierpatched} | MMR: ${mmrjson.data.elo}`
+                teamname2.innerHTML = `${namejson[0].GameName}#${namejson[0].TagLine}`
+                team.append(teamname)
+                team2.append(teamname2)
+                teams.append(team)
+                teams.append(team2)
+                matchdata.append(time_results)
+                matchdata.append(teams)
+                matchbracket.append(matchdata)
+                document.getElementById("ally_team_input").append(matchbracket)
+            }
+            for(let i = 0; enemy_team.length > i; i++) {
+                var mmr = await fetch(`https://api.henrikdev.xyz/valorant/v1/by-puuid/mmr/eu/${enemy_team[i].Subject}`)
+                var mmrjson = await mmr.json()
+                var name = await fetch(`http://127.0.0.1:5000/v1/get-name/${enemy_team[i].Subject}`)
+                var namejson = await name.json()
+                var matchbracket = document.createElement("div")
+                matchbracket.className = "match"
+                matchbracket.style.cssText = `background-image: url("https://media.valorant-api.com/playercards/${enemy_team[i].PlayerIdentity.PlayerCardID}/wideart.png");background-size: 320px 88px;`
+                var matchdata = document.createElement("a")
+                matchdata.className = "matchdata"
+                var time_results = document.createElement("div")
+                time_results.className = "time_result"
+                var image_agent = document.createElement("img")
+                image_agent.src = `https://media.valorant-api.com/agents/${enemy_team[i].CharacterID}/displayicon.png`
+                image_agent.style.cssText = "height: 50px; width: 50px"
+                time_results.append(image_agent)
+                var teams = document.createElement("div")
+                teams.className = "teams"
+                var team = document.createElement("div")
+                var team2 = document.createElement("div")
+                var teamname = document.createElement("div")
+                var teamname2 = document.createElement("div")
+                team.className = "team"
+                team2.className = "team"
+                teamname.className = "team-name team-winner"
+                teamname2.className = "team-name"
+                teamname.innerHTML = `Rang: ${mmrjson.data.currenttierpatched} | MMR: ${mmrjson.data.elo}`
+                teamname2.innerHTML = `${namejson[0].GameName}#${namejson[0].TagLine}`
+                team.append(teamname)
+                team2.append(teamname2)
+                teams.append(team)
+                teams.append(team2)
+                matchdata.append(time_results)
+                matchdata.append(teams)
+                matchbracket.append(matchdata)
+                document.getElementById("enemy_team_input").append(matchbracket)
+            }
+        }
+        matches()
+    </script>
+    <style>
+        @font-face {
+            font-family: "DIN Next LT Pro Bold";
+            src: url(DINNextLTPro-Bold.ttf);
+        }
+        .tw-flex {
+            display: flex;
+        }
+        .tw-flex-col {
+            flex-direction: column;
+        }
+        .special-h2 {
+            text-align: center;
+            font-size: 32px;
+            line-height: 48px;
+            font-family: "DIN Next LT Pro Bold";
+            color: #fff
+        }
+        .round {
+            margin-right: 32px;
+            width: 320px;
+        }
+        .main-bracket {
+            justify-content: space-around;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            flex-grow: 1;
+        }
+        .match {
+            --tw-bg-opacity: 1;
+            background-color: #042e27;
+            border-radius: 6px;
+            margin-bottom: 24px;
+            position: relative;
+            --tw-shadow: inset 0px 0px 0px 1px rgba(45,48,71,0.1),0px 4px 24px -4px rgba(0,0,0,0.7);
+            box-shadow: 0 0 transparent,0 0 transparent,var(--tw-shadow);
+            box-shadow: var(--tw-ring-offset-shadow,0 0 transparent),var(--tw-ring-shadow,0 0 transparent),var(--tw-shadow);
+            width: 100%;
+            transform-origin: center;
+            transition-property: all;
+            transition-timing-function: cubic-bezier(.4,0,.2,1);
+            transition-duration: .15s;
+            text-decoration: none;
+        }
+        .matchdata {
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            text-decoration: none;
+            border: 5px solid #ff4654
+        }
+        .teams {
+            display: flex;
+            width: 100%;
+            min-width: 0;
+            flex-direction: column;
+        }
+        .not-decided {
+            color: turquoise !important
+        }
+        .team {
+            display: flex;
+            padding: 8px 12px;
+            text-decoration: none;
+        }
+        .team-winner {
+            font-size: 12px !important;
+        }
+        .team-name {
+            display: flex;
+            align-items: center;
+            min-width: 0;
+            overflow: hidden;
+            pointer-events: none;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            font-family: Gilroy,sans-serif;
+            font-weight: 700;
+            font-size: 16px;
+            line-height: 28px;
+            color: white;
+            font-family: "DIN Next LT Pro Bold";
+            background: rgba(255, 70, 86, 0.718);
+        }
+        .time_result {
+            font-family: "DIN Next LT Pro Bold";
+            font-weight: 800;
+            font-size: 20px;
+            line-height: 32px;
+            border-radius: 4px;
+            padding-left: 8px;
+            padding-right: 8px;
+            padding-top: 7px;
+            padding-bottom: 7px;
+        }
+        .result {
+            height: 32px;
+            text-align: center;
+            width: 32px;
+            font-family: "DIN Next LT Pro Bold";
+            font-weight: 800;
+            font-size: 20px;
+            line-height: 32px;
+            color: white
+        }
+        .seperator {
+            background-color: rgba(255,255,255,var(--tw-bg-opacity));
+            height: 2px;
+            margin-top: 4px;
+            margin-bottom: 4px;
+            width: 100%;
+        }
+        .seperator-span {
+            display: none;
+            font-family: Gilroy,sans-serif;
+            font-weight: 800;
+            font-size: 20px;
+            line-height: 32px;
+        }
+    </style>
+</html>

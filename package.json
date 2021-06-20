@@ -1,0 +1,23 @@
+{
+  "name": "valorant-overlay",
+  "version": "1.0.0",
+  "description": "Custom VALORANT Stream Overlay",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Henrik-3/valorant-overlay.git"
+  },
+  "dependencies": {
+    "axios": "^0.21.1",
+    "fastify": "^3.18.0"
+  },
+  "author": "HenrikDev",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Henrik-3/valorant-overlay/issues"
+  },
+  "homepage": "https://github.com/Henrik-3/valorant-overlay#readme"
+}
