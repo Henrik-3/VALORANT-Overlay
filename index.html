@@ -16,90 +16,151 @@
             </div>
         </div>
     </body>
+    <script src="socket.io.min.js"></script>
     <script>
-        async function matches() {
+        var mode = {
+            "": "Custom Games",
+            "unrated": "Ungewertet",
+            "spikerush": "Spike Rush",
+            "ggteam": "Escalation",
+            "competitive": "Gewertet",
+            "onefa": "Klonprogramm",
+            "deathmatch": "Deathmatch",
+            "snowball": "Schneeballschlacht"
+        }
+        var socket = io("http://127.0.0.1:5001");
+        socket.on('update', async msg => {
+            if(msg.state == "Menu") return clear()
+            if(msg.state == "Pregame") return 
+            if(msg.state == "Ingame") return ingame(msg)
+            console.log(msg)
+        })
+        socket.on("initialize", async msg => {
+            console.log(msg)
+            if(msg.state == "Menu") return clear()
+            if(msg.state == "Pregame") return
+            if(msg.state == "Ingame") return await ingame(msg)
+        })
+        async function ingame(state) {
+            console.log(state)
             var coregame = await fetch("http://127.0.0.1:5000/v1/core-game")
             var coregamejson = await coregame.json()
-            var own_team_array = coregamejson.data.Players.filter(item => item.Subject == coregamejson.subject)
-            var own_team = own_team_array[0].TeamID
-            var ally_team = coregamejson.data.Players.filter(item => item.TeamID == own_team)
-            var enemy_team = coregamejson.data.Players.filter(item => item.TeamID != own_team)
-            for(let i = 0; ally_team.length > i; i++) {
-                var mmr = await fetch(`https://api.henrikdev.xyz/valorant/v1/by-puuid/mmr/eu/${ally_team[i].Subject}`)
-                var mmrjson = await mmr.json()
-                var name = await fetch(`http://127.0.0.1:5000/v1/get-name/${ally_team[i].Subject}`)
-                var namejson = await name.json()
-                var matchbracket = document.createElement("div")
-                matchbracket.className = "match"
-                matchbracket.style.cssText = `background-image: url("https://media.valorant-api.com/playercards/${ally_team[i].PlayerIdentity.PlayerCardID}/wideart.png");background-size: 320px 88px;`
-                var matchdata = document.createElement("a")
-                matchdata.className = "matchdata"
-                var time_results = document.createElement("div")
-                time_results.className = "time_result"
-                var image_agent = document.createElement("img")
-                image_agent.src = `https://media.valorant-api.com/agents/${ally_team[i].CharacterID}/displayicon.png`
-                image_agent.style.cssText = "height: 50px; width: 50px"
-                time_results.append(image_agent)
-                var teams = document.createElement("div")
-                teams.className = "teams"
-                var team = document.createElement("div")
-                var team2 = document.createElement("div")
-                var teamname = document.createElement("div")
-                var teamname2 = document.createElement("div")
-                team.className = "team"
-                team2.className = "team"
-                teamname.className = "team-name team-winner"
-                teamname2.className = "team-name"
-                teamname.innerHTML = `Rang: ${mmrjson.data.currenttierpatched} | MMR: ${mmrjson.data.elo}`
-                teamname2.innerHTML = `${namejson[0].GameName}#${namejson[0].TagLine}`
-                team.append(teamname)
-                team2.append(teamname2)
-                teams.append(team)
-                teams.append(team2)
-                matchdata.append(time_results)
-                matchdata.append(teams)
-                matchbracket.append(matchdata)
-                document.getElementById("ally_team_input").append(matchbracket)
-            }
-            for(let i = 0; enemy_team.length > i; i++) {
-                var mmr = await fetch(`https://api.henrikdev.xyz/valorant/v1/by-puuid/mmr/eu/${enemy_team[i].Subject}`)
-                var mmrjson = await mmr.json()
-                var name = await fetch(`http://127.0.0.1:5000/v1/get-name/${enemy_team[i].Subject}`)
-                var namejson = await name.json()
-                var matchbracket = document.createElement("div")
-                matchbracket.className = "match"
-                matchbracket.style.cssText = `background-image: url("https://media.valorant-api.com/playercards/${enemy_team[i].PlayerIdentity.PlayerCardID}/wideart.png");background-size: 320px 88px;`
-                var matchdata = document.createElement("a")
-                matchdata.className = "matchdata"
-                var time_results = document.createElement("div")
-                time_results.className = "time_result"
-                var image_agent = document.createElement("img")
-                image_agent.src = `https://media.valorant-api.com/agents/${enemy_team[i].CharacterID}/displayicon.png`
-                image_agent.style.cssText = "height: 50px; width: 50px"
-                time_results.append(image_agent)
-                var teams = document.createElement("div")
-                teams.className = "teams"
-                var team = document.createElement("div")
-                var team2 = document.createElement("div")
-                var teamname = document.createElement("div")
-                var teamname2 = document.createElement("div")
-                team.className = "team"
-                team2.className = "team"
-                teamname.className = "team-name team-winner"
-                teamname2.className = "team-name"
-                teamname.innerHTML = `Rang: ${mmrjson.data.currenttierpatched} | MMR: ${mmrjson.data.elo}`
-                teamname2.innerHTML = `${namejson[0].GameName}#${namejson[0].TagLine}`
-                team.append(teamname)
-                team2.append(teamname2)
-                teams.append(team)
-                teams.append(team2)
-                matchdata.append(time_results)
-                matchdata.append(teams)
-                matchbracket.append(matchdata)
-                document.getElementById("enemy_team_input").append(matchbracket)
+            if(mode[state.data.queueId] == "Spike Rush" || mode[state.data.queueId] == "Schneeballschlacht"|| mode[state.data.queueId] == "Custom Games"|| mode[state.data.queueId] == "Ungewertet" || mode[state.data.queueId] == "Gewertet" || mode[state.data.queueId] == "Escalation") {
+                if(!document.getElementById("matchavailable")) {
+                    var own_team_array = coregamejson.data.Players.filter(item => item.Subject == coregamejson.subject)
+                    var own_team = own_team_array[0].TeamID
+                    var ally_team = coregamejson.data.Players.filter(item => item.TeamID == own_team)
+                    var enemy_team = coregamejson.data.Players.filter(item => item.TeamID != own_team)
+                    for(let i = 0; ally_team.length > i; i++) {
+                        var mmr = await fetch(`https://api.henrikdev.xyz/valorant/v1/by-puuid/mmr/eu/${ally_team[i].Subject}`)
+                        var mmrjson = mmr.status == 200 ? await mmr.json() : "N.A"
+                        var name = await fetch(`http://127.0.0.1:5000/v1/get-name/${ally_team[i].Subject}`)
+                        var namejson = await name.json()
+                        console.log(mmrjson)
+                        var matchbracket = document.createElement("div")
+                        matchbracket.className = "match"
+                        matchbracket.id = "matchavailable"
+                        matchbracket.style.cssText = "background-color: rgba(67,106,113, 0.5)"
+                        var matchdata = document.createElement("a")
+                        matchdata.className = "matchdata"
+                        var agent = document.createElement("div")
+                        agent.className = "time_result"
+                        var rank = document.createElement("div")
+                        rank.className = "time_result"
+                        var card = document.createElement("div")
+                        card.className = "time_result"
+                        var image_agent = document.createElement("img")
+                        image_agent.src = `https://media.valorant-api.com/agents/${ally_team[i].CharacterID}/displayicon.png`
+                        image_agent.style.cssText = "height: 50px; width: 50px"
+                        agent.append(image_agent)
+                        var teams = document.createElement("div")
+                        teams.className = "teams"
+                        var team2 = document.createElement("div")
+                        var teamname2 = document.createElement("div")
+                        team2.className = "team"
+                        teamname2.className = "team-name"
+                        teamname2.innerHTML = `${namejson[0].GameName}#${namejson[0].TagLine}`
+                        team2.append(teamname2)
+                        teams.append(team2)
+                        var image_rank = document.createElement("img")
+                        image_rank.src = typeof mmrjson == "object" ? `https://media.valorant-api.com/competitivetiers/564d8e28-c226-3180-6285-e48a390db8b1/${mmrjson.data.currenttier}/largeicon.png` : `https://media.valorant-api.com/competitivetiers/564d8e28-c226-3180-6285-e48a390db8b1/0/largeicon.png`
+                        image_rank.style.cssText = "height: 50px; width: 50px"
+                        var rank_elo = document.createElement("div")
+                        rank_elo.className = "team-name"
+                        rank_elo.innerHTML = typeof mmrjson == "object" ? mmrjson.data.elo : "N.A"
+                        rank_elo.style.cssText = "margin-left: 6.5px"
+                        var image_card = document.createElement("img")
+                        image_card.src = `https://media.valorant-api.com/playercards/${ally_team[i].PlayerIdentity.PlayerCardID}/smallart.png`
+                        image_card.style.cssText = "height: 50px; width: 50px"
+                        rank.append(image_rank)
+                        rank.append(rank_elo)
+                        card.append(image_card)
+                        matchdata.append(agent)
+                        matchdata.append(teams)
+                        matchdata.append(rank)
+                        matchdata.append(card)
+                        matchbracket.append(matchdata)
+                        document.getElementById("ally_team_input").append(matchbracket)
+                    }
+                    for(let i = 0; enemy_team.length > i; i++) {
+                        var mmr = await fetch(`https://api.henrikdev.xyz/valorant/v1/by-puuid/mmr/eu/${enemy_team[i].Subject}`)
+                        var mmrjson = mmr.status == 200 ? await mmr.json() : "N.A"
+                        console.log(typeof mmrjson)
+                        var name = await fetch(`http://127.0.0.1:5000/v1/get-name/${enemy_team[i].Subject}`)
+                        var namejson = await name.json()
+                        console.log(mmrjson)
+                        var matchbracket = document.createElement("div")
+                        matchbracket.className = "match"
+                        matchbracket.id = "matchavailable"
+                        matchbracket.style.cssText = "background-color: rgba(255, 70, 84, 0.5)"
+                        var matchdata = document.createElement("a")
+                        matchdata.className = "matchdata"
+                        var agent = document.createElement("div")
+                        agent.className = "time_result"
+                        var rank = document.createElement("div")
+                        rank.className = "time_result"
+                        var card = document.createElement("div")
+                        card.className = "time_result"
+                        var image_agent = document.createElement("img")
+                        image_agent.src = `https://media.valorant-api.com/agents/${enemy_team[i].CharacterID}/displayicon.png`
+                        image_agent.style.cssText = "height: 50px; width: 50px"
+                        agent.append(image_agent)
+                        var teams = document.createElement("div")
+                        teams.className = "teams"
+                        var team2 = document.createElement("div")
+                        var teamname2 = document.createElement("div")
+                        team2.className = "team"
+                        teamname2.className = "team-name"
+                        teamname2.innerHTML = `${namejson[0].GameName}#${namejson[0].TagLine}`
+                        team2.append(teamname2)
+                        teams.append(team2)
+                        var image_rank = document.createElement("img")
+                        image_rank.src = typeof mmrjson == "object" ? `https://media.valorant-api.com/competitivetiers/564d8e28-c226-3180-6285-e48a390db8b1/${mmrjson.data.currenttier}/largeicon.png` : `https://media.valorant-api.com/competitivetiers/564d8e28-c226-3180-6285-e48a390db8b1/0/largeicon.png`
+                        image_rank.style.cssText = "height: 50px; width: 50px"
+                        var rank_elo = document.createElement("div")
+                        rank_elo.className = "team-name"
+                        rank_elo.innerHTML = typeof mmrjson == "object" ? mmrjson.data.elo : "N.A"
+                        rank_elo.style.cssText = "margin-left: 6.5px"
+                        var image_card = document.createElement("img")
+                        image_card.src = `https://media.valorant-api.com/playercards/${enemy_team[i].PlayerIdentity.PlayerCardID}/smallart.png`
+                        image_card.style.cssText = "height: 50px; width: 50px"
+                        rank.append(image_rank)
+                        rank.append(rank_elo)
+                        card.append(image_card)
+                        matchdata.append(agent)
+                        matchdata.append(teams)
+                        matchdata.append(rank)
+                        matchdata.append(card)
+                        matchbracket.append(matchdata)
+                        document.getElementById("enemy_team_input").append(matchbracket)
+                    }
+                }
             }
         }
-        matches()
+        async function clear() {
+            var ally_team = document.getElementById("ally_team_input").innerHTML = ""
+            var enemy_team = document.getElementById("enemy_team_input").innerHTML = ""
+        }
     </script>
     <style>
         @font-face {
@@ -151,7 +212,6 @@
             display: flex;
             align-items: center;
             text-decoration: none;
-            border: 5px solid #ff4654
         }
         .teams {
             display: flex;
@@ -174,7 +234,6 @@
             display: flex;
             align-items: center;
             min-width: 0;
-            overflow: hidden;
             pointer-events: none;
             text-overflow: ellipsis;
             white-space: nowrap;
@@ -184,7 +243,6 @@
             line-height: 28px;
             color: white;
             font-family: "DIN Next LT Pro Bold";
-            background: rgba(255, 70, 86, 0.718);
         }
         .time_result {
             font-family: "DIN Next LT Pro Bold";
