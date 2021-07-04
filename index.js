@@ -15,6 +15,10 @@ const ws = new WebSocket(`wss://riot:${wsdata.pw}@127.0.0.1:${wsdata.port}/`, "w
 
 if(!fs.existsSync(`${process.env.LOCALAPPDATA}\\Riot Games\\Riot Client\\Config\\lockfile`)) throw "Bitte öffne VALORANT"
 
+setInterval(async () => {
+    tokens = await data()
+}, 3000000) //50min (token expires after 60min)
+
 var data = async function () {
     if(fs.existsSync(`${process.env.LOCALAPPDATA}\\Riot Games\\Riot Client\\Config\\lockfile`)) {
         var lockfileContents = fs.readFileSync(`${process.env.LOCALAPPDATA}\\Riot Games\\Riot Client\\Config\\lockfile`, 'utf8');
@@ -72,6 +76,16 @@ fastify.get("/v1/core-game", async (req, res) => {
     console.log(matchid)
     if(matchid.response) return errorhandler(matchid.response.status, res)
     var core_game_data = await axios.get(`https://glz-eu-1.eu.a.pvp.net/core-game/v1/matches/${matchid.data.MatchID}`, {headers: {Authorization: "Bearer " + tokens.data.accessToken,"X-Riot-Entitlements-JWT": tokens.data.token,"X-Riot-ClientVersion": "release-02.09-shipping-14-560778","X-Riot-ClientPlatform": "ew0KCSJwbGF0Zm9ybVR5cGUiOiAiUEMiLA0KCSJwbGF0Zm9ybU9TIjogIldpbmRvd3MiLA0KCSJwbGF0Zm9ybU9TVmVyc2lvbiI6ICIxMC4wLjE5MDQyLjEuMjU2LjY0Yml0IiwNCgkicGxhdGZvcm1DaGlwc2V0IjogIlVua25vd24iDQp9"}}).catch(error => {return error})
+    if(core_game_data.response) return errorhandler(core_game_data.response.status, res)
+    res.send({data: core_game_data.data, subject: tokens.data.subject})
+})
+
+fastify.get("/v1/pre-game", async (req, res) => {
+    tokens = tokens == undefined ? await data() : tokens
+    var matchid = await axios.get(`https://glz-eu-1.eu.a.pvp.net/pregame/v1/players/${tokens.data.subject}`, {headers: {Authorization: "Bearer " + tokens.data.accessToken,"X-Riot-Entitlements-JWT": tokens.data.token,"X-Riot-ClientVersion": "release-02.09-shipping-14-560778","X-Riot-ClientPlatform": "ew0KCSJwbGF0Zm9ybVR5cGUiOiAiUEMiLA0KCSJwbGF0Zm9ybU9TIjogIldpbmRvd3MiLA0KCSJwbGF0Zm9ybU9TVmVyc2lvbiI6ICIxMC4wLjE5MDQyLjEuMjU2LjY0Yml0IiwNCgkicGxhdGZvcm1DaGlwc2V0IjogIlVua25vd24iDQp9"}}).catch(error => {return error})
+    console.log(matchid)
+    if(matchid.response) return errorhandler(matchid.response.status, res)
+    var core_game_data = await axios.get(`https://glz-eu-1.eu.a.pvp.net/pregame/v1/matches/${matchid.data.MatchID}`, {headers: {Authorization: "Bearer " + tokens.data.accessToken,"X-Riot-Entitlements-JWT": tokens.data.token,"X-Riot-ClientVersion": "release-02.09-shipping-14-560778","X-Riot-ClientPlatform": "ew0KCSJwbGF0Zm9ybVR5cGUiOiAiUEMiLA0KCSJwbGF0Zm9ybU9TIjogIldpbmRvd3MiLA0KCSJwbGF0Zm9ybU9TVmVyc2lvbiI6ICIxMC4wLjE5MDQyLjEuMjU2LjY0Yml0IiwNCgkicGxhdGZvcm1DaGlwc2V0IjogIlVua25vd24iDQp9"}}).catch(error => {return error})
     if(core_game_data.response) return errorhandler(core_game_data.response.status, res)
     res.send({data: core_game_data.data, subject: tokens.data.subject})
 })
