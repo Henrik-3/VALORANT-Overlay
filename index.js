@@ -12,7 +12,7 @@ const io = require("socket.io")(5001, {
 const WebSocket = require('ws');
 var wsdata = fetchLogin()
 const ws = new WebSocket(`wss://riot:${wsdata.pw}@127.0.0.1:${wsdata.port}/`, "wamp");
-const settings = fs.readFileSync("settings.json", {encoding: "utf-8"})
+const settings = JSON.parse(fs.readFileSync("./settings.json", {encoding: "utf-8"}))
 
 if(!fs.existsSync(`${process.env.LOCALAPPDATA}\\Riot Games\\Riot Client\\Config\\lockfile`)) throw "Bitte öffne VALORANT"
 
@@ -143,9 +143,9 @@ ws.on('message', async data => {
     if(typeof pdata[2] == "object" && pdata[2].eventType == "Update" && pdata[2].uri == "/chat/v4/presences" && pdata[2].data.presences[0].puuid == tokens.data.subject) {
         var decode = JSON.parse(atob(pdata[2].data.presences[0].private));
         if(cstate != decode.sessionLoopSate) {
-            if(decode.sessionLoopState == "MENUS") return io.emit("update", {state: "Menu", data: decode}); cstate = decode.sessionLoopState;console.log("State: MENUS")
-            if(decode.sessionLoopState == "PREGAME") return io.emit("update", {state: "PreGame", data: decode}); cstate = decode.sessionLoopState;console.log("State: PREGAME")
-            if(decode.sessionLoopState == "INGAME") return io.emit("update", {state: "Ingame", data: decode}); cstate = decode.sessionLoopState;console.log("State: INGAME")
+            if(decode.sessionLoopState == "MENUS") {cstate = decode.sessionLoopState;console.log("State: MENUS");return io.emit("update", {state: "Menu", data: decode})}
+            if(decode.sessionLoopState == "PREGAME") {cstate = decode.sessionLoopState;console.log("State: PREGAME");return io.emit("update", {state: "PreGame", data: decode})}
+            if(decode.sessionLoopState == "INGAME") {cstate = decode.sessionLoopState;console.log("State: INGAME");return io.emit("update", {state: "Ingame", data: decode})}
         }
     }
 });
@@ -166,9 +166,9 @@ io.on("connection", async socket => {
     }).catch(error => {return error})
     var f = presence.data.presences.filter(item => item.puuid == tokens.data.subject)
     var d = JSON.parse(atob(f[0].private))
-    if(d.sessionLoopState == "MENUS") io.emit("initialize", {state: "Menu", data: d});console.log("State: MENUS")
-    if(d.sessionLoopState == "PREGAME") io.emit("initialize", {state: "PreGame", data: d});console.log("State: PREGAME")
-    if(d.sessionLoopState == "INGAME") io.emit("initialize", {state: "Ingame", data: d});console.log("State: INGAME")
+    if(d.sessionLoopState == "MENUS") {io.emit("initialize", {state: "Menu", data: d});console.log("State: MENUS")}
+    if(d.sessionLoopState == "PREGAME") {io.emit("initialize", {state: "PreGame", data: d});console.log("State: PREGAME")}
+    if(d.sessionLoopState == "INGAME") {io.emit("initialize", {state: "Ingame", data: d});console.log("State: INGAME")}
     socket.on('disconnect', () => {
         console.log('Disconnected')
     })
