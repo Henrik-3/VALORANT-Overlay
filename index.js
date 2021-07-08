@@ -133,7 +133,7 @@ ws.on("open", async open => {
         })
     }).catch(error => {return error})
     var f = presence.data.presences.filter(item => item.puuid == tokens.data.subject)
-    var d = JSON.parse(atob(f[0].private))
+    var d = JSON.parse(Buffer.from(f[0].private, "base64").toString("utf-8"))
     cstate = d.sessionLoopState
     ws.send('[5, \"OnJsonApiEvent\"]');
 })
@@ -141,7 +141,7 @@ ws.on("open", async open => {
 ws.on('message', async data => {
     var pdata = JSON.parse(data)
     if(typeof pdata[2] == "object" && pdata[2].eventType == "Update" && pdata[2].uri == "/chat/v4/presences" && pdata[2].data.presences[0].puuid == tokens.data.subject) {
-        var decode = JSON.parse(atob(pdata[2].data.presences[0].private));
+        var decode = JSON.parse(Buffer.from(pdata[2].data.presences[0].private, "base64").toString("utf-8"));
         if(cstate != decode.sessionLoopSate) {
             if(decode.sessionLoopState == "MENUS") {cstate = decode.sessionLoopState;console.log("State: MENUS");return io.emit("update", {state: "Menu", data: decode})}
             if(decode.sessionLoopState == "PREGAME") {cstate = decode.sessionLoopState;console.log("State: PREGAME");return io.emit("update", {state: "PreGame", data: decode})}
@@ -165,7 +165,7 @@ io.on("connection", async socket => {
         })
     }).catch(error => {return error})
     var f = presence.data.presences.filter(item => item.puuid == tokens.data.subject)
-    var d = JSON.parse(atob(f[0].private))
+    var d = JSON.parse(Buffer.from(Buffer.from(f[0].private, "base64").toString("utf-8")).toString("utf-8"))
     if(d.sessionLoopState == "MENUS") {io.emit("initialize", {state: "Menu", data: d});console.log("State: MENUS")}
     if(d.sessionLoopState == "PREGAME") {io.emit("initialize", {state: "PreGame", data: d});console.log("State: PREGAME")}
     if(d.sessionLoopState == "INGAME") {io.emit("initialize", {state: "Ingame", data: d});console.log("State: INGAME")}
@@ -174,4 +174,4 @@ io.on("connection", async socket => {
     })
 })
 
-fastify.listen(5000, () => {console.log("Online")})
+fastify.listen(5000, () => {console.log("Online auf http://127.0.0.1:5000")})
