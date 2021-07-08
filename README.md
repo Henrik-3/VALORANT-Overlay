@@ -1,4 +1,4 @@
-# VALORANT-Overlay (beta-v1.0-b2)
+# VALORANT-Overlay (beta-v1.0-b3)
 VALORANT Stream Overlay (Project was initialized for the VALORANT DE Discord, that why the stuff is in german)
 
 # Needed node.js modules
