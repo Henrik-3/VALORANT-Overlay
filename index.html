@@ -82,7 +82,7 @@
                         var teamname2 = document.createElement("div")
                         team2.className = "team"
                         teamname2.className = "team-name"
-                        teamname2.innerHTML = `${namejson[0].GameName}#${namejson[0].TagLine}`
+                        teamname2.innerHTML = `${namejson[0].GameName}`
                         team2.append(teamname2)
                         teams.append(team2)
                         var image_rank = document.createElement("img")
@@ -91,13 +91,9 @@
                         var rank_elo = document.createElement("div")
                         rank_elo.className = "team-name"
                         rank_elo.innerHTML = typeof mmrjson == "object" ? mmrjson.data.elo : "N.A"
-                        rank_elo.style.cssText = "margin-left: 6.5px"
-                        var image_card = document.createElement("img")
-                        image_card.src = `https://media.valorant-api.com/playercards/${ally_team[i].PlayerIdentity.PlayerCardID}/smallart.png`
-                        image_card.style.cssText = "height: 50px; width: 50px"
+                        rank_elo.style.cssText = "justify-content: center;"
                         rank.append(image_rank)
                         rank.append(rank_elo)
-                        card.append(image_card)
                         matchdata.append(agent)
                         matchdata.append(teams)
                         matchdata.append(rank)
@@ -151,15 +147,10 @@
                         var rank_elo = document.createElement("div")
                         rank_elo.className = "team-name"
                         rank_elo.innerHTML = typeof mmrjson == "object" ? "N.A" : "N.A"
-                        rank_elo.style.cssText = "margin-left: 6.5px"
+                        rank_elo.style.cssText = "justify-content: center;"
                         rank_elo.id = `rankelo${i}_enemy`
-                        var image_card = document.createElement("img")
-                        image_card.src = `https://media.valorant-api.com/competitivetiers/564d8e28-c226-3180-6285-e48a390db8b1/0/largeicon.png`
-                        image_card.style.cssText = "height: 50px; width: 50px"
-                        image_card.id = `cardimg${i}_enemy`
                         rank.append(image_rank)
                         rank.append(rank_elo)
-                        card.append(image_card)
                         matchdata.append(agent)
                         matchdata.append(teams)
                         matchdata.append(rank)
@@ -202,13 +193,11 @@
                         var image_agent = document.getElementById(`agentimg${i}_enemy`)
                         image_agent.src = `https://media.valorant-api.com/agents/${enemy_team[i].CharacterID}/displayicon.png`
                         var namedom = document.getElementById(`name${i}_enemy`)
-                        namedom.innerHTML = `${namejson[0].GameName}#${namejson[0].TagLine}`
+                        namedom.innerHTML = `${namejson[0].GameName}`
                         var image_rank = document.getElementById(`rankimg${i}_enemy`)
                         image_rank.src = typeof mmrjson == "object" ? `https://media.valorant-api.com/competitivetiers/564d8e28-c226-3180-6285-e48a390db8b1/${mmrjson.data.currenttier}/largeicon.png` : `https://media.valorant-api.com/competitivetiers/564d8e28-c226-3180-6285-e48a390db8b1/0/largeicon.png`
                         var elo = document.getElementById(`rankelo${i}_enemy`)
                         elo.innerHTML = typeof mmrjson == "object" ? mmrjson.data.elo : "N.A"
-                        var image_card = document.getElementById(`cardimg${i}_enemy`)
-                        image_card.src = `https://media.valorant-api.com/playercards/${enemy_team[i].PlayerIdentity.PlayerCardID}/smallart.png`
                     }
                 }
             }
@@ -250,7 +239,7 @@
                         var teamname2 = document.createElement("div")
                         team2.className = "team"
                         teamname2.className = "team-name"
-                        teamname2.innerHTML = `${namejson[0].GameName}#${namejson[0].TagLine}`
+                        teamname2.innerHTML = `${namejson[0].GameName}`
                         team2.append(teamname2)
                         teams.append(team2)
                         var image_rank = document.createElement("img")
@@ -259,13 +248,9 @@
                         var rank_elo = document.createElement("div")
                         rank_elo.className = "team-name"
                         rank_elo.innerHTML = typeof mmrjson == "object" ? mmrjson.data.elo : "N.A"
-                        rank_elo.style.cssText = "margin-left: 6.5px"
-                        var image_card = document.createElement("img")
-                        image_card.src = `https://media.valorant-api.com/playercards/${ally_team[i].PlayerIdentity.PlayerCardID}/smallart.png`
-                        image_card.style.cssText = "height: 50px; width: 50px"
+                        rank_elo.style.cssText = "justify-content: center;"
                         rank.append(image_rank)
                         rank.append(rank_elo)
-                        card.append(image_card)
                         matchdata.append(agent)
                         matchdata.append(teams)
                         matchdata.append(rank)
@@ -302,7 +287,7 @@
                         var teamname2 = document.createElement("div")
                         team2.className = "team"
                         teamname2.className = "team-name"
-                        teamname2.innerHTML = `${namejson[0].GameName}#${namejson[0].TagLine}`
+                        teamname2.innerHTML = `${namejson[0].GameName}`
                         team2.append(teamname2)
                         teams.append(team2)
                         var image_rank = document.createElement("img")
@@ -311,13 +296,9 @@
                         var rank_elo = document.createElement("div")
                         rank_elo.className = "team-name"
                         rank_elo.innerHTML = typeof mmrjson == "object" ? mmrjson.data.elo : "N.A"
-                        rank_elo.style.cssText = "margin-left: 6.5px"
-                        var image_card = document.createElement("img")
-                        image_card.src = `https://media.valorant-api.com/playercards/${enemy_team[i].PlayerIdentity.PlayerCardID}/smallart.png`
-                        image_card.style.cssText = "height: 50px; width: 50px"
+                        rank_elo.style.cssText = "justify-content: center;"
                         rank.append(image_rank)
                         rank.append(rank_elo)
-                        card.append(image_card)
                         matchdata.append(agent)
                         matchdata.append(teams)
                         matchdata.append(rank)
@@ -353,7 +334,7 @@
         }
         .round {
             margin-right: 32px;
-            width: 320px;
+            width: 250px;
         }
         .main-bracket {
             justify-content: space-around;
@@ -426,6 +407,7 @@
             padding-right: 8px;
             padding-top: 7px;
             padding-bottom: 7px;
+            justify-content: center;
         }
         .result {
             height: 32px;
