@@ -73,7 +73,7 @@
                         } else {
                             image_agent.src = `https://media.valorant-api.com/agents/${ally_team[i].CharacterID}/displayicon.png`
                         }
-                        image_agent.style.cssText = "height: 50px; width: 50px"
+                        image_agent.style.cssText = "height: 25px; width: 25px"
                         image_agent.id = `agentimg${i}_ally`
                         agent.append(image_agent)
                         var teams = document.createElement("div")
@@ -87,7 +87,7 @@
                         teams.append(team2)
                         var image_rank = document.createElement("img")
                         image_rank.src = typeof mmrjson == "object" ? `https://media.valorant-api.com/competitivetiers/564d8e28-c226-3180-6285-e48a390db8b1/${mmrjson.data.currenttier}/largeicon.png` : `https://media.valorant-api.com/competitivetiers/564d8e28-c226-3180-6285-e48a390db8b1/0/largeicon.png`
-                        image_rank.style.cssText = "height: 50px; width: 50px"
+                        image_rank.style.cssText = "height: 25px; width: 25px"
                         var rank_elo = document.createElement("div")
                         rank_elo.className = "team-name"
                         rank_elo.innerHTML = typeof mmrjson == "object" ? mmrjson.data.elo : "N.A"
@@ -127,7 +127,7 @@
                             image_agent.src = `https://media.valorant-api.com/competitivetiers/564d8e28-c226-3180-6285-e48a390db8b1/0/largeicon.png`
                         }*/
                         image_agent.src = `https://media.valorant-api.com/competitivetiers/564d8e28-c226-3180-6285-e48a390db8b1/0/largeicon.png`
-                        image_agent.style.cssText = "height: 50px; width: 50px"
+                        image_agent.style.cssText = "height: 25px; width: 25px"
                         image_agent.id = `agentimg${i}_enemy`
                         agent.append(image_agent)
                         var teams = document.createElement("div")
@@ -142,7 +142,7 @@
                         teams.append(team2)
                         var image_rank = document.createElement("img")
                         image_rank.src = typeof mmrjson == "object" ? `https://media.valorant-api.com/competitivetiers/564d8e28-c226-3180-6285-e48a390db8b1/0/largeicon.png` : `https://media.valorant-api.com/competitivetiers/564d8e28-c226-3180-6285-e48a390db8b1/0/largeicon.png`
-                        image_rank.style.cssText = "height: 50px; width: 50px"
+                        image_rank.style.cssText = "height: 25px; width: 25px"
                         image_rank.id = `rankimg${i}_enemy`
                         var rank_elo = document.createElement("div")
                         rank_elo.className = "team-name"
@@ -231,7 +231,7 @@
                         card.className = "time_result"
                         var image_agent = document.createElement("img")
                         image_agent.src = `https://media.valorant-api.com/agents/${ally_team[i].CharacterID}/displayicon.png`
-                        image_agent.style.cssText = "height: 50px; width: 50px"
+                        image_agent.style.cssText = "height: 25px; width: 25px"
                         agent.append(image_agent)
                         var teams = document.createElement("div")
                         teams.className = "teams"
@@ -244,7 +244,7 @@
                         teams.append(team2)
                         var image_rank = document.createElement("img")
                         image_rank.src = typeof mmrjson == "object" ? `https://media.valorant-api.com/competitivetiers/564d8e28-c226-3180-6285-e48a390db8b1/${mmrjson.data.currenttier}/largeicon.png` : `https://media.valorant-api.com/competitivetiers/564d8e28-c226-3180-6285-e48a390db8b1/0/largeicon.png`
-                        image_rank.style.cssText = "height: 50px; width: 50px"
+                        image_rank.style.cssText = "height: 25px; width: 25px"
                         var rank_elo = document.createElement("div")
                         rank_elo.className = "team-name"
                         rank_elo.innerHTML = typeof mmrjson == "object" ? mmrjson.data.elo : "N.A"
@@ -279,7 +279,7 @@
                         card.className = "time_result"
                         var image_agent = document.createElement("img")
                         image_agent.src = `https://media.valorant-api.com/agents/${enemy_team[i].CharacterID}/displayicon.png`
-                        image_agent.style.cssText = "height: 50px; width: 50px"
+                        image_agent.style.cssText = "height: 25px; width: 25px"
                         agent.append(image_agent)
                         var teams = document.createElement("div")
                         teams.className = "teams"
@@ -292,7 +292,7 @@
                         teams.append(team2)
                         var image_rank = document.createElement("img")
                         image_rank.src = typeof mmrjson == "object" ? `https://media.valorant-api.com/competitivetiers/564d8e28-c226-3180-6285-e48a390db8b1/${mmrjson.data.currenttier}/largeicon.png` : `https://media.valorant-api.com/competitivetiers/564d8e28-c226-3180-6285-e48a390db8b1/0/largeicon.png`
-                        image_rank.style.cssText = "height: 50px; width: 50px"
+                        image_rank.style.cssText = "height: 25px; width: 25px"
                         var rank_elo = document.createElement("div")
                         rank_elo.className = "team-name"
                         rank_elo.innerHTML = typeof mmrjson == "object" ? mmrjson.data.elo : "N.A"
@@ -364,6 +364,7 @@
             display: flex;
             align-items: center;
             text-decoration: none;
+            vertical-align: baseline;
         }
         .teams {
             display: flex;
@@ -392,7 +393,7 @@
             white-space: nowrap;
             font-family: Gilroy,sans-serif;
             font-weight: 700;
-            font-size: 16px;
+            font-size: 12px;
             line-height: 28px;
             color: white;
             font-family: "DIN Next LT Pro Bold";
@@ -408,6 +409,8 @@
             padding-top: 7px;
             padding-bottom: 7px;
             justify-content: center;
+            align-items: center;
+            vertical-align: baseline;
         }
         .result {
             height: 32px;
