@@ -44,11 +44,15 @@ var data = async function () {
 }
 
 function fetchLogin() {
-    var lockfileContents = fs.readFileSync(`${process.env.LOCALAPPDATA}\\Riot Games\\Riot Client\\Config\\lockfile`, 'utf8');
-    var matches = lockfileContents.match(/(.*):(.*):(.*):(.*):(.*)/);
-    var port = matches[3]
-    var pw = matches[4]
-    return {port: port, pw: pw}
+    if(fs.existsSync(`${process.env.LOCALAPPDATA}\\Riot Games\\Riot Client\\Config\\lockfile`)) {
+        var lockfileContents = fs.readFileSync(`${process.env.LOCALAPPDATA}\\Riot Games\\Riot Client\\Config\\lockfile`, 'utf8');
+        var matches = lockfileContents.match(/(.*):(.*):(.*):(.*):(.*)/);
+        var port = matches[3]
+        var pw = matches[4]
+        return {port: port, pw: pw}
+    } else {
+        throw "VALORANT nicht offen"
+    }
 }
 
 const errors = {
@@ -174,4 +178,4 @@ io.on("connection", async socket => {
     })
 })
 
-fastify.listen(5000, () => {console.log("Online auf http://127.0.0.1:5000")})
+fastify.listen(5000, '127.0.0.1', (err, address) => {console.log(`Online auf ${address}`)})
