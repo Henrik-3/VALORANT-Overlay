@@ -10,7 +10,7 @@ const io = require("socket.io")(5001, {
     methods: ["GET", "POST"]
 }});
 const WebSocket = require('ws');
-var wsdata
+var wsdata = null
 websocketConnect()
 const settings = JSON.parse(fs.readFileSync("./settings.json", {encoding: "utf-8"}))
 
@@ -37,8 +37,9 @@ var data = async function () {
             })
         })
     } else {
+        wsdata = null
         console.log("Valorant ist nicht geöffnet, versuche es in 10 Sekunden erneut ...")
-        sleep(10000)
+        await sleep(10000)
         return await data()
     }
 }
@@ -111,7 +112,7 @@ async function websocketConnect() {
 
 }
 
-function fetchLogin() {
+async function fetchLogin() {
     if(fs.existsSync(`${process.env.LOCALAPPDATA}\\Riot Games\\Riot Client\\Config\\lockfile`)) {
         var lockfileContents = fs.readFileSync(`${process.env.LOCALAPPDATA}\\Riot Games\\Riot Client\\Config\\lockfile`, 'utf8');
         var matches = lockfileContents.match(/(.*):(.*):(.*):(.*):(.*)/);
@@ -120,18 +121,16 @@ function fetchLogin() {
         return {port: port, pw: pw}
     } else {
         console.log("Valorant ist nicht geöffnet, versuche es in 10 Sekunden erneut ...")
-        sleep(10000)
-        return fetchLogin()
+        await sleep(10000)
+        return await fetchLogin()
     }
 }
 
-function sleep(milliseconds) {
-    const date = Date.now();
-    let currentDate = null;
-    do {
-      currentDate = Date.now();
-    } while (currentDate - date < milliseconds);
-  }
+function sleep(ms) {
+    return new Promise((resolve) => {
+      setTimeout(resolve, ms);
+    });
+  }   
 
 const errors = {
     404: {status: "404", message: "Not in expected state"},
@@ -207,6 +206,12 @@ io.on("connection", async socket => {
     socket.on('disconnect', () => {
         console.log('Disconnected')
     })
+    if(wsdata == null){
+        console.log("Eine abfrage an Valorant hat ein Fehler geworfen.")
+        io.emit("initialize", {state: "Menu"});
+        console.log("State: Close")
+        return
+    }
     var presence = await axios.get(`https://127.0.0.1:${wsdata.port}/chat/v4/presences`, {
         headers: {
             'Authorization': `Basic ${Buffer.from(`riot:${wsdata.pw}`, 'utf8').toString('base64')}`,
