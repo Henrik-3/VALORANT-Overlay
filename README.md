@@ -14,8 +14,7 @@ VALORANT Stream Overlay (Project was initialized for the VALORANT DE Discord, th
 ![unknown (1)](https://user-images.githubusercontent.com/43936184/132141274-a64f9327-5eb7-44bb-a79d-3da9caf36d24.png)
 
 # Know Issues:
-- MMR is not coorectly in the middle
-- Code is messy (This project is a bunch of different projects, clean will follow)
+- Code is still a bit messy (This project is a bunch of different projects, clean will follow)
 
 # How to install
 1. Download node.js 14.x LTS: [Download](https://nodejs.org/en/download/)
