@@ -206,8 +206,6 @@
         async function ingame(state) {
             var coregame = await fetch("http://127.0.0.1:5000/v1/core-game")
             var coregamejson = await coregame.json()
-            console.log("players:")
-            console.log(coregamejson.data.Players);
             if(mode[state.data.queueId] == "Spike Rush" || mode[state.data.queueId] == "NewMap" || mode[state.data.queueId] == "Schneeballschlacht"|| mode[state.data.queueId] == "Custom Games"|| mode[state.data.queueId] == "Ungewertet" || mode[state.data.queueId] == "Gewertet" || mode[state.data.queueId] == "Escalation" ||  mode[state.data.queueId] == "Deathmatch") {
                 if(!document.getElementById("matchavailable")) {
                     var own_team_array = coregamejson.data.Players.filter(item => item.Subject == coregamejson.subject)
