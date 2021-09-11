@@ -1,443 +1,248 @@
-<html>
-    <head>
-        
-    </head>
-    <body style="background-color: rgb(0, 0, 0);">
-        <div class="tw-flex" style="margin-left: 20px;">
-            <div class="tw-flex tw-flex-col" id="ally_team" style="margin-top:auto">
-                <div class="round main-bracket" id="ally_team_input">
+process.env['NODE_TLS_REJECT_UNAUTHORIZED'] = 0
 
-                </div>
-            </div>
-            <div class="tw-flex tw-flex-col" id="enemy_team" style="margin-left: auto;margin-top:auto">
-                <div class="round main-bracket" id="enemy_team_input">
-                    
-                </div>
-            </div>
-        </div>
-    </body>
-    <script src="socket.io.min.js"></script>
-    <script>
-        var mode = {
-            "": "Custom Games",
-            "unrated": "Ungewertet",
-            "spikerush": "Spike Rush",
-            "ggteam": "Escalation",
-            "competitive": "Gewertet",
-            "onefa": "Klonprogramm",
-            "deathmatch": "Deathmatch",
-            "snowball": "Schneeballschlacht",
-            "newmap": "Fracture"
-        }
-        var socket = io("http://127.0.0.1:5001");
-        socket.on('update', async msg => {
-            console.log(msg)
-            if(msg.state == "Menu") return clear()
-            if(msg.state == "PreGame") return pregame(msg)
-            if(msg.state == "Ingame") return fixingame(msg)
+const fastify = require("fastify")()
+const fs = require("fs")
+const axios = require("axios")
+const https = require("https");
+const io = require("socket.io")(5001, {
+  cors: {
+    origin: "*",
+    methods: ["GET", "POST"]
+}});
+const WebSocket = require('ws');
+var wsdata = null
+websocketConnect()
+const settings = JSON.parse(fs.readFileSync("./settings.json", {encoding: "utf-8"}))
+
+setInterval(async () => {
+    tokens = await data()
+}, 3000000) //50min (token expires after 60min)
+
+var data = async function () {
+    if(fs.existsSync(`${process.env.LOCALAPPDATA}\\Riot Games\\Riot Client\\Config\\lockfile`)) {
+        var lockfileContents = fs.readFileSync(`${process.env.LOCALAPPDATA}\\Riot Games\\Riot Client\\Config\\lockfile`, 'utf8');
+        var matches = lockfileContents.match(/(.*):(.*):(.*):(.*):(.*)/);
+        var port = matches[3]
+        var pw = matches[4]
+        return await axios.get(`https://127.0.0.1:${port}/entitlements/v1/token`, {
+            headers: {
+                'Authorization': `Basic ${Buffer.from(`riot:${pw}`, 'utf8').toString('base64')}`,
+                "user-agent": "ShooterGame/21 Windows/10.0.19042.1.768.64bit",
+                "X-Riot-ClientVersion": "release-02.03-shipping-8-521855",
+                "Content-Type": "application/json",
+                "rchat-blocking": "true"
+            },
+            httpsAgent: new https.Agent({
+                rejectUnauthorized: false,
+            })
         })
-        socket.on("initialize", async msg => {
-            console.log(msg)
-            if(msg.state == "Menu") return clear()
-            if(msg.state == "PreGame") return pregame(msg)
-            if(msg.state == "Ingame") return ingame(msg)
+    } else {
+        wsdata = null
+        console.log("Valorant ist nicht geöffnet, versuche es in 10 Sekunden erneut ...")
+        await sleep(10000)
+        return await data()
+    }
+}
+
+async function websocketConnect() {
+    wsdata = await fetchLogin();
+    var ws = new WebSocket(`wss://riot:${wsdata.pw}@127.0.0.1:${wsdata.port}/`, "wamp");
+    ws.on("open", async open => {
+        tokens = tokens == undefined ? await data() : tokens
+        var presence = await axios.get(`https://127.0.0.1:${wsdata.port}/chat/v4/presences`, {
+            headers: {
+                'Authorization': `Basic ${Buffer.from(`riot:${wsdata.pw}`, 'utf8').toString('base64')}`,
+                "user-agent": "ShooterGame/21 Windows/10.0.19042.1.768.64bit",
+                "X-Riot-ClientVersion": "release-02.03-shipping-8-521855",
+                "Content-Type": "application/json",
+                "rchat-blocking": "true"
+            },
+            httpsAgent: new https.Agent({
+                rejectUnauthorized: false,
+            })
+        }).catch(error => {return error})
+
+        if(presence instanceof Error){
+            console.log("Eine abfrage an Valorant hat ein Fehler geworfen.")
+            ws.close()
+            return
+        }
+
+        try {
+            var f = presence.data.presences.filter(item => item.puuid == tokens.data.subject)
+            var d = JSON.parse(Buffer.from(f[0].private, "base64").toString("utf-8"))
+            cstate = d.sessionLoopState
+            ws.send('[5, \"OnJsonApiEvent\"]');
+        } catch(e){
+            console.log("Eine abfrage an Valorant hat ein Fehler geworfen.")
+             ws.close()
+        }
+        
+    })
+    
+    ws.on('message', async data => {
+        var pdata = JSON.parse(data)
+        if(typeof pdata[2] == "object" && pdata[2].eventType == "Update" && pdata[2].uri == "/chat/v4/presences" && pdata[2].data.presences[0].puuid == tokens.data.subject) {
+            var decode = JSON.parse(Buffer.from(pdata[2].data.presences[0].private, "base64").toString("utf-8"));
+            if(cstate != decode.sessionLoopSate) {
+                if(decode.sessionLoopState == "MENUS") {cstate = decode.sessionLoopState;console.log("State: MENUS");return io.emit("update", {state: "Menu", data: decode})}
+                if(decode.sessionLoopState == "PREGAME") {cstate = decode.sessionLoopState;console.log("State: PREGAME");return io.emit("update", {state: "PreGame", data: decode})}
+                if(decode.sessionLoopState == "INGAME") {cstate = decode.sessionLoopState;console.log("State: INGAME");return io.emit("update", {state: "Ingame", data: decode})}
+            }
+        }
+    });
+    
+    
+    ws.on('close', async data => {
+        console.log('Socket is closed. Reconnect will be attempted in 10 second.', data.reason);
+        ws.close()
+        io.emit("update", {state: "Menu"});
+        console.log("State: Close")
+        setTimeout(function() {
+            if(ws.readyState == 2 || ws.readyState == 3){
+                websocketConnect()
+           }
+        }, 10000);
+    });
+
+    ws.on('error', async data => {
+        console.error('Socket encountered error: ', data.message, 'Closing socket');
+            ws.close()
+    });
+
+}
+
+async function fetchLogin() {
+    if(fs.existsSync(`${process.env.LOCALAPPDATA}\\Riot Games\\Riot Client\\Config\\lockfile`)) {
+        var lockfileContents = fs.readFileSync(`${process.env.LOCALAPPDATA}\\Riot Games\\Riot Client\\Config\\lockfile`, 'utf8');
+        var matches = lockfileContents.match(/(.*):(.*):(.*):(.*):(.*)/);
+        var port = matches[3]
+        var pw = matches[4]
+        return {port: port, pw: pw}
+    } else {
+        console.log("Valorant ist nicht geöffnet, versuche es in 10 Sekunden erneut ...")
+        await sleep(10000)
+        return await fetchLogin()
+    }
+}
+
+function sleep(ms) {
+    return new Promise((resolve) => {
+      setTimeout(resolve, ms);
+    });
+  }   
+
+const errors = {
+    404: {status: "404", message: "Not in expected state"},
+    503: {status: "503", message: "Source Server is not reachable"},
+    429: {status: "429", message: "Source Server Rate Limit, try again later"},
+}
+
+function errorhandler(status, res) {
+    if(errors[status] != undefined) return res.code(status).type("application/json").send(errors[status])
+    return res.code(500).type("application/json").send({status: "500", message: "Unknown error occured"})
+}
+
+fastify.get("/", async (req, res) => {
+    tokens = tokens == undefined ? await data() : tokens
+    var buffer = fs.readFileSync("index.html")
+    res.type("text/html").send(buffer)
+})
+
+var tokens
+var cstate
+
+fastify.get("/v1/core-game", async (req, res) => {
+    tokens = tokens == undefined ? await data() : tokens
+    var matchid = await axios.get(`https://glz-${settings.region}-1.${settings.region}.a.pvp.net/core-game/v1/players/${tokens.data.subject}`, {headers: {Authorization: "Bearer " + tokens.data.accessToken,"X-Riot-Entitlements-JWT": tokens.data.token,"X-Riot-ClientVersion": "release-03.00-shipping-22-574489","X-Riot-ClientPlatform": "ew0KCSJwbGF0Zm9ybVR5cGUiOiAiUEMiLA0KCSJwbGF0Zm9ybU9TIjogIldpbmRvd3MiLA0KCSJwbGF0Zm9ybU9TVmVyc2lvbiI6ICIxMC4wLjE5MDQyLjEuMjU2LjY0Yml0IiwNCgkicGxhdGZvcm1DaGlwc2V0IjogIlVua25vd24iDQp9"}}).catch(error => {return error})
+    if(matchid.response && matchid.response.status == 400) {
+        tokens = await data()
+        matchid = await axios.get(`https://glz-${settings.region}-1.${settings.region}.a.pvp.net/core-game/v1/players/${tokens.data.subject}`, {headers: {Authorization: "Bearer " + tokens.data.accessToken,"X-Riot-Entitlements-JWT": tokens.data.token,"X-Riot-ClientVersion": "release-03.00-shipping-22-574489","X-Riot-ClientPlatform": "ew0KCSJwbGF0Zm9ybVR5cGUiOiAiUEMiLA0KCSJwbGF0Zm9ybU9TIjogIldpbmRvd3MiLA0KCSJwbGF0Zm9ybU9TVmVyc2lvbiI6ICIxMC4wLjE5MDQyLjEuMjU2LjY0Yml0IiwNCgkicGxhdGZvcm1DaGlwc2V0IjogIlVua25vd24iDQp9"}}).catch(error => {return error})
+    }
+    if(matchid.response) return errorhandler(matchid.response.status, res)
+    var core_game_data = await axios.get(`https://glz-${settings.region}-1.${settings.region}.a.pvp.net/core-game/v1/matches/${matchid.data.MatchID}`, {headers: {Authorization: "Bearer " + tokens.data.accessToken,"X-Riot-Entitlements-JWT": tokens.data.token,"X-Riot-ClientVersion": "release-03.00-shipping-22-574489","X-Riot-ClientPlatform": "ew0KCSJwbGF0Zm9ybVR5cGUiOiAiUEMiLA0KCSJwbGF0Zm9ybU9TIjogIldpbmRvd3MiLA0KCSJwbGF0Zm9ybU9TVmVyc2lvbiI6ICIxMC4wLjE5MDQyLjEuMjU2LjY0Yml0IiwNCgkicGxhdGZvcm1DaGlwc2V0IjogIlVua25vd24iDQp9"}}).catch(error => {return error})
+    if(core_game_data.response) return errorhandler(core_game_data.response.status, res)
+    res.send({data: core_game_data.data, subject: tokens.data.subject})
+})
+
+fastify.get("/v1/pre-game", async (req, res) => {
+    tokens = tokens == undefined ? await data() : tokens
+    var matchid = await axios.get(`https://glz-${settings.region}-1.${settings.region}.a.pvp.net/pregame/v1/players/${tokens.data.subject}`, {headers: {Authorization: "Bearer " + tokens.data.accessToken,"X-Riot-Entitlements-JWT": tokens.data.token,"X-Riot-ClientVersion": "release-03.00-shipping-22-574489","X-Riot-ClientPlatform": "ew0KCSJwbGF0Zm9ybVR5cGUiOiAiUEMiLA0KCSJwbGF0Zm9ybU9TIjogIldpbmRvd3MiLA0KCSJwbGF0Zm9ybU9TVmVyc2lvbiI6ICIxMC4wLjE5MDQyLjEuMjU2LjY0Yml0IiwNCgkicGxhdGZvcm1DaGlwc2V0IjogIlVua25vd24iDQp9"}}).catch(error => {return error})
+    if(matchid.response && matchid.response.status == 400) {
+        tokens = await data()
+        matchid = await axios.get(`https://glz-${settings.region}-1.${settings.region}.a.pvp.net/pregame/v1/players/${tokens.data.subject}`, {headers: {Authorization: "Bearer " + tokens.data.accessToken,"X-Riot-Entitlements-JWT": tokens.data.token,"X-Riot-ClientVersion": "release-03.00-shipping-22-574489","X-Riot-ClientPlatform": "ew0KCSJwbGF0Zm9ybVR5cGUiOiAiUEMiLA0KCSJwbGF0Zm9ybU9TIjogIldpbmRvd3MiLA0KCSJwbGF0Zm9ybU9TVmVyc2lvbiI6ICIxMC4wLjE5MDQyLjEuMjU2LjY0Yml0IiwNCgkicGxhdGZvcm1DaGlwc2V0IjogIlVua25vd24iDQp9"}}).catch(error => {return error})
+    }
+    if(matchid.response) return errorhandler(matchid.response.status, res)
+    var pre_game_data = await axios.get(`https://glz-${settings.region}-1.eu.a.pvp.net/pregame/v1/matches/${matchid.data.MatchID}`, {headers: {Authorization: "Bearer " + tokens.data.accessToken,"X-Riot-Entitlements-JWT": tokens.data.token,"X-Riot-ClientVersion": "release-03.00-shipping-22-574489","X-Riot-ClientPlatform": "ew0KCSJwbGF0Zm9ybVR5cGUiOiAiUEMiLA0KCSJwbGF0Zm9ybU9TIjogIldpbmRvd3MiLA0KCSJwbGF0Zm9ybU9TVmVyc2lvbiI6ICIxMC4wLjE5MDQyLjEuMjU2LjY0Yml0IiwNCgkicGxhdGZvcm1DaGlwc2V0IjogIlVua25vd24iDQp9"}}).catch(error => {return error})
+    if(pre_game_data.response) return errorhandler(pre_game_data.response.status, res)
+    res.send({data: pre_game_data.data, subject: tokens.data.subject})
+})
+
+fastify.get("/v1/get-name/:id", async (req, res) => {
+    var tokens = await data()
+    var playerid = await axios.put(`https://pd.${settings.region}.a.pvp.net/name-service/v2/players`, [req.params.id], {headers: {Authorization: "Bearer " + tokens.data.accessToken,"X-Riot-Entitlements-JWT": tokens.data.token,"X-Riot-ClientVersion": "release-03.00-shipping-22-574489","X-Riot-ClientPlatform": "ew0KCSJwbGF0Zm9ybVR5cGUiOiAiUEMiLA0KCSJwbGF0Zm9ybU9TIjogIldpbmRvd3MiLA0KCSJwbGF0Zm9ybU9TVmVyc2lvbiI6ICIxMC4wLjE5MDQyLjEuMjU2LjY0Yml0IiwNCgkicGxhdGZvcm1DaGlwc2V0IjogIlVua25vd24iDQp9"}}).catch(error => {return error})
+    if(playerid.response && playerid.response.status == 400) {
+        tokens = await data()
+        playerid = await axios.put(`https://pd.${settings.region}.a.pvp.net/name-service/v2/players`, [req.params.id], {headers: {Authorization: "Bearer " + tokens.data.accessToken,"X-Riot-Entitlements-JWT": tokens.data.token,"X-Riot-ClientVersion": "release-03.00-shipping-22-574489","X-Riot-ClientPlatform": "ew0KCSJwbGF0Zm9ybVR5cGUiOiAiUEMiLA0KCSJwbGF0Zm9ybU9TIjogIldpbmRvd3MiLA0KCSJwbGF0Zm9ybU9TVmVyc2lvbiI6ICIxMC4wLjE5MDQyLjEuMjU2LjY0Yml0IiwNCgkicGxhdGZvcm1DaGlwc2V0IjogIlVua25vd24iDQp9"}}).catch(error => {return error})
+    }
+    if(playerid.response) return errorhandler(playerid.response.status, res)
+    res.send(playerid.data)
+})
+
+fastify.get("/DINNextLTPro-Bold.ttf", async (req, res) => {
+    var buffer = fs.readFileSync("DINNextLTPro-Bold.ttf")
+    res.type("font/opentype").send(buffer)
+})
+
+fastify.get("/socket.io.min.js", async (req, res) => {
+    var buffer = fs.readFileSync("socket.io.min.js")
+    res.type("text/javascript").send(buffer)
+})
+
+
+
+io.on("connection", async socket => {
+    console.log("Connected")
+    socket.on('disconnect', () => {
+        console.log('Disconnected')
+    })
+    if(wsdata == null){
+        console.log("Eine abfrage an Valorant hat ein Fehler geworfen.")
+        io.emit("initialize", {state: "Menu"});
+        console.log("State: Close")
+        return
+    }
+    var presence = await axios.get(`https://127.0.0.1:${wsdata.port}/chat/v4/presences`, {
+        headers: {
+            'Authorization': `Basic ${Buffer.from(`riot:${wsdata.pw}`, 'utf8').toString('base64')}`,
+            "user-agent": "ShooterGame/21 Windows/10.0.19042.1.768.64bit",
+            "X-Riot-ClientVersion": "release-02.03-shipping-8-521855",
+            "Content-Type": "application/json",
+            "rchat-blocking": "true"
+        },
+        httpsAgent: new https.Agent({
+            rejectUnauthorized: false,
         })
-        async function pregame(state) {
-            var coregame = await fetch("http://127.0.0.1:5000/v1/pre-game")
-            var coregamejson = await coregame.json()
-            if(mode[state.data.queueId] == "Ungewertet" || mode[state.data.queueId] == "Gewertet" || mode[state.data.queueId] == "Spike Rush" || mode[state.data.queueId] == "Schneeballschlacht"|| mode[state.data.queueId] == "Custom Games" || mode[state.data.queueId] == "Escalation" || mode[state.data.queueId] == "Fracture") {
-                if(!document.getElementById("matchavailable")) {
-                    var ally_team = coregamejson.data.AllyTeam != null ? coregamejson.data.AllyTeam.Players : []
-                    var enemy_team = coregamejson.data.EnemyTeam != null ? coregamejson.data.EnemyTeam.Players : []
-                    for(let i = 0; ally_team.length > i; i++) {
-                        var mmr = await fetch(`https://api.henrikdev.xyz/valorant/v1/by-puuid/mmr/eu/${ally_team[i].Subject}`)
-                        var mmrjson = mmr.status == 200 ? await mmr.json() : "N.A"
-                        var name = await fetch(`http://127.0.0.1:5000/v1/get-name/${ally_team[i].Subject}`)
-                        var namejson = await name.json()
-                        console.log(mmrjson)
-                        var matchbracket = document.createElement("div")
-                        matchbracket.className = "match"
-                        matchbracket.id = "matchavailable"
-                        matchbracket.style.cssText = "background-color: rgba(67,106,113, 0.5)"
-                        var matchdata = document.createElement("a")
-                        matchdata.className = "matchdata"
-                        var agent = document.createElement("div")
-                        agent.className = "time_result"
-                        var rank = document.createElement("div")
-                        rank.className = "time_result"
-                        var card = document.createElement("div")
-                        card.className = "time_result"
-                        var image_agent = document.createElement("img")
-                        if(ally_team[i].CharacterSelectionState == "") {
-                            image_agent.src = "https://media.valorant-api.com/competitivetiers/564d8e28-c226-3180-6285-e48a390db8b1/0/smallicon.png"
-                        } else {
-                            image_agent.src = `https://media.valorant-api.com/agents/${ally_team[i].CharacterID}/displayicon.png`
-                        }
-                        image_agent.style.cssText = "height: 25px; width: 25px"
-                        image_agent.id = `agentimg${i}_ally`
-                        agent.append(image_agent)
-                        var teams = document.createElement("div")
-                        teams.className = "teams"
-                        var team2 = document.createElement("div")
-                        var teamname2 = document.createElement("div")
-                        team2.className = "team"
-                        teamname2.className = "team-name"
-                        teamname2.innerHTML = `${namejson[0].GameName}`
-                        team2.append(teamname2)
-                        teams.append(team2)
-                        var image_rank = document.createElement("img")
-                        image_rank.src = typeof mmrjson == "object" ? `https://media.valorant-api.com/competitivetiers/564d8e28-c226-3180-6285-e48a390db8b1/${mmrjson.data.currenttier}/largeicon.png` : `https://media.valorant-api.com/competitivetiers/564d8e28-c226-3180-6285-e48a390db8b1/0/largeicon.png`
-                        image_rank.style.cssText = "height: 25px; width: 25px"
-                        var rank_elo = document.createElement("div")
-                        rank_elo.className = "team-name"
-                        rank_elo.innerHTML = typeof mmrjson == "object" ? mmrjson.data.elo : "N.A"
-                        rank_elo.style.cssText = "justify-content: center;"
-                        rank.append(image_rank)
-                        rank.append(rank_elo)
-                        matchdata.append(agent)
-                        matchdata.append(teams)
-                        matchdata.append(rank)
-                        matchdata.append(card)
-                        matchbracket.append(matchdata)
-                        document.getElementById("ally_team_input").append(matchbracket)
-                    }
-                    for(let i = 0; 5 > i; i++) {
-                        /*var mmr = await fetch(`https://api.henrikdev.xyz/valorant/v1/by-puuid/mmr/eu/${enemy_team[i].Subject}`)
-                        console.log(mmr.status)
-                        var mmrjson = mmr.status == 200 ? await mmr.json() : "N.A"
-                        console.log(typeof mmrjson)
-                        var name = await fetch(`http://127.0.0.1:5000/v1/get-name/${enemy_team[i].Subject}`)
-                        var namejson = await name.json()*/
-                        var matchbracket = document.createElement("div")
-                        matchbracket.className = "match"
-                        matchbracket.id = "matchavailable"
-                        matchbracket.style.cssText = "background-color: rgba(255, 70, 84, 0.5)"
-                        var matchdata = document.createElement("a")
-                        matchdata.className = "matchdata"
-                        var agent = document.createElement("div")
-                        agent.className = "time_result"
-                        var rank = document.createElement("div")
-                        rank.className = "time_result"
-                        var card = document.createElement("div")
-                        card.className = "time_result"
-                        var image_agent = document.createElement("img")
-                        /*if(enemy_team[i].CharacterSelectionState == "") {
-                            image_agent.src = "https://media.valorant-api.com/competitivetiers/564d8e28-c226-3180-6285-e48a390db8b1/0/smallicon.png"
-                        } else {
-                            image_agent.src = `https://media.valorant-api.com/competitivetiers/564d8e28-c226-3180-6285-e48a390db8b1/0/largeicon.png`
-                        }*/
-                        image_agent.src = `https://media.valorant-api.com/competitivetiers/564d8e28-c226-3180-6285-e48a390db8b1/0/largeicon.png`
-                        image_agent.style.cssText = "height: 25px; width: 25px"
-                        image_agent.id = `agentimg${i}_enemy`
-                        agent.append(image_agent)
-                        var teams = document.createElement("div")
-                        teams.className = "teams"
-                        var team2 = document.createElement("div")
-                        var teamname2 = document.createElement("div")
-                        team2.className = "team"
-                        teamname2.className = "team-name"
-                        teamname2.innerHTML = `Loading...`
-                        teamname2.id = `name${i}_enemy`
-                        team2.append(teamname2)
-                        teams.append(team2)
-                        var image_rank = document.createElement("img")
-                        image_rank.src = typeof mmrjson == "object" ? `https://media.valorant-api.com/competitivetiers/564d8e28-c226-3180-6285-e48a390db8b1/0/largeicon.png` : `https://media.valorant-api.com/competitivetiers/564d8e28-c226-3180-6285-e48a390db8b1/0/largeicon.png`
-                        image_rank.style.cssText = "height: 25px; width: 25px"
-                        image_rank.id = `rankimg${i}_enemy`
-                        var rank_elo = document.createElement("div")
-                        rank_elo.className = "team-name"
-                        rank_elo.innerHTML = typeof mmrjson == "object" ? "N.A" : "N.A"
-                        rank_elo.style.cssText = "justify-content: center;"
-                        rank_elo.id = `rankelo${i}_enemy`
-                        rank.append(image_rank)
-                        rank.append(rank_elo)
-                        matchdata.append(agent)
-                        matchdata.append(teams)
-                        matchdata.append(rank)
-                        matchdata.append(card)
-                        matchbracket.append(matchdata)
-                        document.getElementById("enemy_team_input").append(matchbracket)
-                    }
-                }
-            }
-            var loop = setInterval(async () => {
-                var coregame = await fetch("http://127.0.0.1:5000/v1/pre-game")
-                if(coregame.status == 404) return clearInterval(loop)
-                var coregamejson = await coregame.json()
-                var ally_team = coregamejson.data.AllyTeam != null ? coregamejson.data.AllyTeam.Players : []
-                for(let i = 0; ally_team.length > i; i++) {
-                    var img = document.getElementById(`agentimg${i}_ally`)
-                    if(ally_team[i].CharacterSelectionState == "") {
-                        img.src = "https://media.valorant-api.com/competitivetiers/564d8e28-c226-3180-6285-e48a390db8b1/0/smallicon.png"
-                    } else {
-                        if(img.src != `https://media.valorant-api.com/agents/${ally_team[i].CharacterID}/displayicon.png`) img.src = `https://media.valorant-api.com/agents/${ally_team[i].CharacterID}/displayicon.png`
-                    }
-                }
-            }, 2500)
-        }
-        async function fixingame(state) {
-            var coregame = await fetch("http://127.0.0.1:5000/v1/core-game")
-            var coregamejson = await coregame.json()
-            if(mode[state.data.queueId] == "Ungewertet" || mode[state.data.queueId] == "Gewertet" || mode[state.data.queueId] == "Spike Rush" || mode[state.data.queueId] == "Schneeballschlacht"|| mode[state.data.queueId] == "Custom Games" || mode[state.data.queueId] == "Escalation"|| mode[state.data.queueId] == "Fracture") {
-                if(document.getElementById("matchavailable")) {
-                    var own_team_array = coregamejson.data.Players.filter(item => item.Subject == coregamejson.subject)
-                    var own_team = own_team_array[0].TeamID
-                    var enemy_team = coregamejson.data.Players.filter(item => item.TeamID != own_team)
-                    for(let i = 0; enemy_team.length > i; i++) {
-                        var mmr = await fetch(`https://api.henrikdev.xyz/valorant/v1/by-puuid/mmr/eu/${enemy_team[i].Subject}`)
-                        var mmrjson = mmr.status == 200 ? await mmr.json() : "N.A"
-                        console.log(typeof mmrjson)
-                        var name = await fetch(`http://127.0.0.1:5000/v1/get-name/${enemy_team[i].Subject}`)
-                        var namejson = await name.json()
-                        console.log(mmrjson)
-                        var image_agent = document.getElementById(`agentimg${i}_enemy`)
-                        image_agent.src = `https://media.valorant-api.com/agents/${enemy_team[i].CharacterID}/displayicon.png`
-                        var namedom = document.getElementById(`name${i}_enemy`)
-                        namedom.innerHTML = `${namejson[0].GameName}`
-                        var image_rank = document.getElementById(`rankimg${i}_enemy`)
-                        image_rank.src = typeof mmrjson == "object" ? `https://media.valorant-api.com/competitivetiers/564d8e28-c226-3180-6285-e48a390db8b1/${mmrjson.data.currenttier}/largeicon.png` : `https://media.valorant-api.com/competitivetiers/564d8e28-c226-3180-6285-e48a390db8b1/0/largeicon.png`
-                        var elo = document.getElementById(`rankelo${i}_enemy`)
-                        elo.innerHTML = typeof mmrjson == "object" ? mmrjson.data.elo : "N.A"
-                    }
-                }
-            }
-        }
-        async function ingame(state) {
-            var coregame = await fetch("http://127.0.0.1:5000/v1/core-game")
-            var coregamejson = await coregame.json()
-            console.log("log1")
-            console.log(state.data.queueId)
-            console.log(mode)
-            if(mode[state.data.queueId] == "Spike Rush" || mode[state.data.queueId] == "Schneeballschlacht"|| mode[state.data.queueId] == "Custom Games"|| mode[state.data.queueId] == "Ungewertet" || mode[state.data.queueId] == "Gewertet" || mode[state.data.queueId] == "Escalation"|| mode[state.data.queueId] == "Fracture") {
-                if(!document.getElementById("matchavailable")) {
-                    var own_team_array = coregamejson.data.Players.filter(item => item.Subject == coregamejson.subject)
-                    var own_team = own_team_array[0].TeamID
-                    var ally_team = coregamejson.data.Players.filter(item => item.TeamID == own_team)
-                    var enemy_team = coregamejson.data.Players.filter(item => item.TeamID != own_team)
-                    for(let i = 0; ally_team.length > i; i++) {
-                        var mmr = await fetch(`https://api.henrikdev.xyz/valorant/v1/by-puuid/mmr/eu/${ally_team[i].Subject}`)
-                        var mmrjson = mmr.status == 200 ? await mmr.json() : "N.A"
-                        var name = await fetch(`http://127.0.0.1:5000/v1/get-name/${ally_team[i].Subject}`)
-                        var namejson = await name.json()
-                        console.log(mmrjson)
-                        var matchbracket = document.createElement("div")
-                        matchbracket.className = "match"
-                        matchbracket.id = "matchavailable"
-                        matchbracket.style.cssText = "background-color: rgba(67,106,113, 0.5)"
-                        var matchdata = document.createElement("a")
-                        matchdata.className = "matchdata"
-                        var agent = document.createElement("div")
-                        agent.className = "time_result"
-                        var rank = document.createElement("div")
-                        rank.className = "time_result"
-                        var card = document.createElement("div")
-                        card.className = "time_result"
-                        var image_agent = document.createElement("img")
-                        image_agent.src = `https://media.valorant-api.com/agents/${ally_team[i].CharacterID}/displayicon.png`
-                        image_agent.style.cssText = "height: 25px; width: 25px"
-                        agent.append(image_agent)
-                        var teams = document.createElement("div")
-                        teams.className = "teams"
-                        var team2 = document.createElement("div")
-                        var teamname2 = document.createElement("div")
-                        team2.className = "team"
-                        teamname2.className = "team-name"
-                        teamname2.innerHTML = `${namejson[0].GameName}`
-                        team2.append(teamname2)
-                        teams.append(team2)
-                        var image_rank = document.createElement("img")
-                        image_rank.src = typeof mmrjson == "object" ? `https://media.valorant-api.com/competitivetiers/564d8e28-c226-3180-6285-e48a390db8b1/${mmrjson.data.currenttier}/largeicon.png` : `https://media.valorant-api.com/competitivetiers/564d8e28-c226-3180-6285-e48a390db8b1/0/largeicon.png`
-                        image_rank.style.cssText = "height: 25px; width: 25px"
-                        var rank_elo = document.createElement("div")
-                        rank_elo.className = "team-name"
-                        rank_elo.innerHTML = typeof mmrjson == "object" ? mmrjson.data.elo : "N.A"
-                        rank_elo.style.cssText = "justify-content: center;"
-                        rank.append(image_rank)
-                        rank.append(rank_elo)
-                        matchdata.append(agent)
-                        matchdata.append(teams)
-                        matchdata.append(rank)
-                        matchdata.append(card)
-                        matchbracket.append(matchdata)
-                        document.getElementById("ally_team_input").append(matchbracket)
-                    }
-                    for(let i = 0; enemy_team.length > i; i++) {
-                        var mmr = await fetch(`https://api.henrikdev.xyz/valorant/v1/by-puuid/mmr/eu/${enemy_team[i].Subject}`)
-                        var mmrjson = mmr.status == 200 ? await mmr.json() : "N.A"
-                        console.log(typeof mmrjson)
-                        var name = await fetch(`http://127.0.0.1:5000/v1/get-name/${enemy_team[i].Subject}`)
-                        var namejson = await name.json()
-                        console.log(mmrjson)
-                        var matchbracket = document.createElement("div")
-                        matchbracket.className = "match"
-                        matchbracket.id = "matchavailable"
-                        matchbracket.style.cssText = "background-color: rgba(255, 70, 84, 0.5)"
-                        var matchdata = document.createElement("a")
-                        matchdata.className = "matchdata"
-                        var agent = document.createElement("div")
-                        agent.className = "time_result"
-                        var rank = document.createElement("div")
-                        rank.className = "time_result"
-                        var card = document.createElement("div")
-                        card.className = "time_result"
-                        var image_agent = document.createElement("img")
-                        image_agent.src = `https://media.valorant-api.com/agents/${enemy_team[i].CharacterID}/displayicon.png`
-                        image_agent.style.cssText = "height: 25px; width: 25px"
-                        agent.append(image_agent)
-                        var teams = document.createElement("div")
-                        teams.className = "teams"
-                        var team2 = document.createElement("div")
-                        var teamname2 = document.createElement("div")
-                        team2.className = "team"
-                        teamname2.className = "team-name"
-                        teamname2.innerHTML = `${namejson[0].GameName}`
-                        team2.append(teamname2)
-                        teams.append(team2)
-                        var image_rank = document.createElement("img")
-                        image_rank.src = typeof mmrjson == "object" ? `https://media.valorant-api.com/competitivetiers/564d8e28-c226-3180-6285-e48a390db8b1/${mmrjson.data.currenttier}/largeicon.png` : `https://media.valorant-api.com/competitivetiers/564d8e28-c226-3180-6285-e48a390db8b1/0/largeicon.png`
-                        image_rank.style.cssText = "height: 25px; width: 25px"
-                        var rank_elo = document.createElement("div")
-                        rank_elo.className = "team-name"
-                        rank_elo.innerHTML = typeof mmrjson == "object" ? mmrjson.data.elo : "N.A"
-                        rank_elo.style.cssText = "justify-content: center;"
-                        rank.append(image_rank)
-                        rank.append(rank_elo)
-                        matchdata.append(agent)
-                        matchdata.append(teams)
-                        matchdata.append(rank)
-                        matchdata.append(card)
-                        matchbracket.append(matchdata)
-                        document.getElementById("enemy_team_input").append(matchbracket)
-                    }
-                }
-            }
-        }
-        async function clear() {
-            var ally_team = document.getElementById("ally_team_input").innerHTML = ""
-            var enemy_team = document.getElementById("enemy_team_input").innerHTML = ""
-        }
-    </script>
-    <style>
-        @font-face {
-            font-family: "DIN Next LT Pro Bold";
-            src: url(DINNextLTPro-Bold.ttf);
-        }
-        .tw-flex {
-            display: flex;
-        }
-        .tw-flex-col {
-            flex-direction: column;
-        }
-        .special-h2 {
-            text-align: center;
-            font-size: 32px;
-            line-height: 48px;
-            font-family: "DIN Next LT Pro Bold";
-            color: #fff
-        }
-        .round {
-            margin-right: 32px;
-            width: 250px;
-        }
-        .main-bracket {
-            justify-content: space-around;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            flex-grow: 1;
-        }
-        .match {
-            --tw-bg-opacity: 1;
-            background-color: #042e27;
-            border-radius: 6px;
-            margin-bottom: 24px;
-            position: relative;
-            --tw-shadow: inset 0px 0px 0px 1px rgba(45,48,71,0.1),0px 4px 24px -4px rgba(0,0,0,0.7);
-            box-shadow: 0 0 transparent,0 0 transparent,var(--tw-shadow);
-            box-shadow: var(--tw-ring-offset-shadow,0 0 transparent),var(--tw-ring-shadow,0 0 transparent),var(--tw-shadow);
-            width: 100%;
-            transform-origin: center;
-            transition-property: all;
-            transition-timing-function: cubic-bezier(.4,0,.2,1);
-            transition-duration: .15s;
-            text-decoration: none;
-        }
-        .matchdata {
-            border-radius: 6px;
-            display: flex;
-            align-items: center;
-            text-decoration: none;
-            vertical-align: baseline;
-        }
-        .teams {
-            display: flex;
-            width: 100%;
-            min-width: 0;
-            flex-direction: column;
-        }
-        .not-decided {
-            color: turquoise !important
-        }
-        .team {
-            display: flex;
-            padding: 8px 12px;
-            text-decoration: none;
-        }
-        .team-winner {
-            font-size: 12px !important;
-        }
-        .team-name {
-            display: flex;
-            align-items: center;
-            min-width: 0;
-            pointer-events: none;
-            text-overflow: ellipsis;
-            overflow: hidden;
-            white-space: nowrap;
-            font-family: Gilroy,sans-serif;
-            font-weight: 700;
-            font-size: 12px;
-            line-height: 28px;
-            color: white;
-            font-family: "DIN Next LT Pro Bold";
-        }
-        .time_result {
-            font-family: "DIN Next LT Pro Bold";
-            font-weight: 800;
-            font-size: 20px;
-            line-height: 32px;
-            border-radius: 4px;
-            padding-left: 8px;
-            padding-right: 8px;
-            padding-top: 7px;
-            padding-bottom: 7px;
-            justify-content: center;
-            align-items: center;
-            vertical-align: baseline;
-        }
-        .result {
-            height: 32px;
-            text-align: center;
-            width: 32px;
-            font-family: "DIN Next LT Pro Bold";
-            font-weight: 800;
-            font-size: 20px;
-            line-height: 32px;
-            color: white
-        }
-        .seperator {
-            background-color: rgba(255,255,255,var(--tw-bg-opacity));
-            height: 2px;
-            margin-top: 4px;
-            margin-bottom: 4px;
-            width: 100%;
-        }
-        .seperator-span {
-            display: none;
-            font-family: Gilroy,sans-serif;
-            font-weight: 800;
-            font-size: 20px;
-            line-height: 32px;
-        }
-    </style>
-</html>
+    }).catch(error => {return error})
+    if(presence instanceof Error){
+        console.log("Eine abfrage an Valorant hat ein Fehler geworfen.")
+        io.emit("initialize", {state: "Menu"});
+        console.log("State: Close")
+        return
+    }
+    try {
+          var f = presence.data.presences.filter(item => item.puuid == tokens.data.subject)
+    var d = JSON.parse(Buffer.from(Buffer.from(f[0].private, "base64").toString("utf-8")).toString("utf-8"))
+    if(d.sessionLoopState == "MENUS") {io.emit("initialize", {state: "Menu", data: d});console.log("State: MENUS")}
+    if(d.sessionLoopState == "PREGAME") {io.emit("initialize", {state: "PreGame", data: d});console.log("State: PREGAME")}
+    if(d.sessionLoopState == "INGAME") {io.emit("initialize", {state: "Ingame", data: d});console.log("State: INGAME")}
+    } catch(e){
+        console.log("Eine abfrage an Valorant hat ein Fehler geworfen.")
+        io.emit("update", {state: "Menu"});
+        console.log("State: Close")
+        return
+    }
+  
+})
+
+fastify.listen(5000, '127.0.0.1', (err, address) => {console.log(`Online auf ${address}`)})
