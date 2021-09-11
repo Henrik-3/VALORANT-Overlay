@@ -16,7 +16,7 @@
             </div>
         </div>
     </body>
-    <script src="socket.io.min.js"></script>
+     <script src="socket.io.min.js"></script>
     <script>
         var mode = {
             "": "Custom Games",
@@ -45,11 +45,13 @@
         async function pregame(state) {
             var coregame = await fetch("http://127.0.0.1:5000/v1/pre-game")
             var coregamejson = await coregame.json()
+            console.log("pregame: ")
             console.log(coregamejson)
-            if(mode[state.data.queueId] == "Ungewertet" || mode[state.data.queueId] == "NewMap" || mode[state.data.queueId] == "Gewertet" || mode[state.data.queueId] == "Spike Rush" || mode[state.data.queueId] == "Schneeballschlacht"|| mode[state.data.queueId] == "Custom Games" || mode[state.data.queueId] == "Escalation") {
+            if(mode[state.data.queueId] == "Ungewertet" || mode[state.data.queueId] == "NewMap" || mode[state.data.queueId] == "Gewertet" || mode[state.data.queueId] == "Spike Rush" || mode[state.data.queueId] == "Schneeballschlacht"|| mode[state.data.queueId] == "Custom Games" || mode[state.data.queueId] == "Escalation" ) {
                 if(!document.getElementById("matchavailable")) {
                     var ally_team = coregamejson.data.AllyTeam != null ? coregamejson.data.AllyTeam.Players : []
                     var enemy_team = coregamejson.data.EnemyTeam != null ? coregamejson.data.EnemyTeam.Players : []
+                    
                     for(let i = 0; ally_team.length > i; i++) {
                         var mmr = await fetch(`https://api.henrikdev.xyz/valorant/v1/by-puuid/mmr/eu/${ally_team[i].Subject}`)
                         var mmrjson = mmr.status == 200 ? await mmr.json() : "N.A"
@@ -179,6 +181,8 @@
         async function fixingame(state) {
             var coregame = await fetch("http://127.0.0.1:5000/v1/core-game")
             var coregamejson = await coregame.json()
+            console.log("fixingame: ")
+            console.log(coregamejson)
             if(mode[state.data.queueId] == "Ungewertet" || mode[state.data.queueId] == "NewMap" || mode[state.data.queueId] == "Gewertet" || mode[state.data.queueId] == "Spike Rush" || mode[state.data.queueId] == "Schneeballschlacht"|| mode[state.data.queueId] == "Custom Games" || mode[state.data.queueId] == "Escalation") {
                 if(document.getElementById("matchavailable")) {
                     var own_team_array = coregamejson.data.Players.filter(item => item.Subject == coregamejson.subject)
@@ -201,17 +205,27 @@
                         elo.innerHTML = typeof mmrjson == "object" ? mmrjson.data.elo : "N.A"
                     }
                 }
+            } else if(mode[state.data.queueId] == "Deathmatch"){
+               ingame(state);
             }
         }
         async function ingame(state) {
             var coregame = await fetch("http://127.0.0.1:5000/v1/core-game")
             var coregamejson = await coregame.json()
-            if(mode[state.data.queueId] == "Spike Rush" || mode[state.data.queueId] == "NewMap" || mode[state.data.queueId] == "Schneeballschlacht"|| mode[state.data.queueId] == "Custom Games"|| mode[state.data.queueId] == "Ungewertet" || mode[state.data.queueId] == "Gewertet" || mode[state.data.queueId] == "Escalation") {
+            console.log("ingame: " )
+            console.log(coregamejson)
+            if(mode[state.data.queueId] == "Spike Rush" || mode[state.data.queueId] == "NewMap" || mode[state.data.queueId] == "Schneeballschlacht"|| mode[state.data.queueId] == "Custom Games"|| mode[state.data.queueId] == "Ungewertet" || mode[state.data.queueId] == "Gewertet" || mode[state.data.queueId] == "Escalation" ||  mode[state.data.queueId] == "Deathmatch") {
                 if(!document.getElementById("matchavailable")) {
                     var own_team_array = coregamejson.data.Players.filter(item => item.Subject == coregamejson.subject)
                     var own_team = own_team_array[0].TeamID
                     var ally_team = coregamejson.data.Players.filter(item => item.TeamID == own_team)
                     var enemy_team = coregamejson.data.Players.filter(item => item.TeamID != own_team)
+                    if(mode[state.data.queueId] == "Deathmatch"){
+                        var result = chunkArray(coregamejson.data.Players, coregamejson.data.Players.length / 2);
+                        ally_team = result[0];
+                        enemy_team = result[1];
+                    }
+
                     for(let i = 0; ally_team.length > i; i++) {
                         var mmr = await fetch(`https://api.henrikdev.xyz/valorant/v1/by-puuid/mmr/eu/${ally_team[i].Subject}`)
                         var mmrjson = mmr.status == 200 ? await mmr.json() : "N.A"
@@ -221,7 +235,15 @@
                         var matchbracket = document.createElement("div")
                         matchbracket.className = "match"
                         matchbracket.id = "matchavailable"
-                        matchbracket.style.cssText = "background-color: rgba(67,106,113, 0.5)"
+                        if(mode[state.data.queueId] == "Deathmatch") {
+                            if(ally_team[i].Subject == coregamejson.subject){
+                                matchbracket.style.cssText = "background-color: rgba(67,106,113, 0.5)"
+                            } else {
+                                matchbracket.style.cssText = "background-color: rgba(255, 70, 84, 0.5)"
+                            }
+                        } else {
+                            matchbracket.style.cssText = "background-color: rgba(67,106,113, 0.5)"
+                        }
                         var matchdata = document.createElement("a")
                         matchdata.className = "matchdata"
                         var agent = document.createElement("div")
@@ -269,7 +291,15 @@
                         var matchbracket = document.createElement("div")
                         matchbracket.className = "match"
                         matchbracket.id = "matchavailable"
-                        matchbracket.style.cssText = "background-color: rgba(255, 70, 84, 0.5)"
+                        if(mode[state.data.queueId] == "Deathmatch") {
+                            if(enemy_team[i].Subject == coregamejson.subject){
+                                matchbracket.style.cssText = "background-color: rgba(67,106,113, 0.5)"
+                            } else {
+                                matchbracket.style.cssText = "background-color: rgba(255, 70, 84, 0.5)"  
+                            }
+                        } else {
+                            matchbracket.style.cssText = "background-color: rgba(255, 70, 84, 0.5)"  
+                        }
                         var matchdata = document.createElement("a")
                         matchdata.className = "matchdata"
                         var agent = document.createElement("div")
@@ -310,6 +340,26 @@
                 }
             }
         }
+
+        /**
+ * Returns an array with arrays of the given size.
+ *
+ * @param myArray {Array} array to split
+ * @param chunk_size {Integer} Size of every group
+ */
+function chunkArray(myArray, chunk_size){
+    var index = 0;
+    var arrayLength = myArray.length;
+    var tempArray = [];
+    
+    for (index = 0; index < arrayLength; index += chunk_size) {
+        myChunk = myArray.slice(index, index+chunk_size);
+        // Do something if you want with the group
+        tempArray.push(myChunk);
+    }
+
+    return tempArray;
+}
         async function clear() {
             var ally_team = document.getElementById("ally_team_input").innerHTML = ""
             var enemy_team = document.getElementById("enemy_team_input").innerHTML = ""
