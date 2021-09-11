@@ -2,7 +2,7 @@
     <head>
         
     </head>
-    <body style="background-color: rgb(0, 0, 0);">
+    <body style="background-color: transparent;">
         <div class="tw-flex" style="margin-left: 20px;">
             <div class="tw-flex tw-flex-col" id="ally_team" style="margin-top:auto">
                 <div class="round main-bracket" id="ally_team_input">
@@ -205,9 +205,6 @@
         async function ingame(state) {
             var coregame = await fetch("http://127.0.0.1:5000/v1/core-game")
             var coregamejson = await coregame.json()
-            console.log("log1")
-            console.log(state.data.queueId)
-            console.log(mode)
             if(mode[state.data.queueId] == "Spike Rush" || mode[state.data.queueId] == "Schneeballschlacht"|| mode[state.data.queueId] == "Custom Games"|| mode[state.data.queueId] == "Ungewertet" || mode[state.data.queueId] == "Gewertet" || mode[state.data.queueId] == "Escalation"|| mode[state.data.queueId] == "Fracture") {
                 if(!document.getElementById("matchavailable")) {
                     var own_team_array = coregamejson.data.Players.filter(item => item.Subject == coregamejson.subject)
