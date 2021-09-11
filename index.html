@@ -2,7 +2,7 @@
     <head>
         
     </head>
-    <body style="background-color: transparent;">
+    <body style="background-color: rgb(0, 0, 0);">
         <div class="tw-flex" style="margin-left: 20px;">
             <div class="tw-flex tw-flex-col" id="ally_team" style="margin-top:auto">
                 <div class="round main-bracket" id="ally_team_input">
@@ -27,7 +27,7 @@
             "onefa": "Klonprogramm",
             "deathmatch": "Deathmatch",
             "snowball": "Schneeballschlacht",
-            "newmap": "NewMap"
+            "newmap": "Fracture"
         }
         var socket = io("http://127.0.0.1:5001");
         socket.on('update', async msg => {
@@ -45,8 +45,7 @@
         async function pregame(state) {
             var coregame = await fetch("http://127.0.0.1:5000/v1/pre-game")
             var coregamejson = await coregame.json()
-            console.log(coregamejson)
-            if(mode[state.data.queueId] == "Ungewertet" || mode[state.data.queueId] == "NewMap" || mode[state.data.queueId] == "Gewertet" || mode[state.data.queueId] == "Spike Rush" || mode[state.data.queueId] == "Schneeballschlacht"|| mode[state.data.queueId] == "Custom Games" || mode[state.data.queueId] == "Escalation") {
+            if(mode[state.data.queueId] == "Ungewertet" || mode[state.data.queueId] == "Gewertet" || mode[state.data.queueId] == "Spike Rush" || mode[state.data.queueId] == "Schneeballschlacht"|| mode[state.data.queueId] == "Custom Games" || mode[state.data.queueId] == "Escalation" || mode[state.data.queueId] == "Fracture") {
                 if(!document.getElementById("matchavailable")) {
                     var ally_team = coregamejson.data.AllyTeam != null ? coregamejson.data.AllyTeam.Players : []
                     var enemy_team = coregamejson.data.EnemyTeam != null ? coregamejson.data.EnemyTeam.Players : []
@@ -179,7 +178,7 @@
         async function fixingame(state) {
             var coregame = await fetch("http://127.0.0.1:5000/v1/core-game")
             var coregamejson = await coregame.json()
-            if(mode[state.data.queueId] == "Ungewertet" || mode[state.data.queueId] == "NewMap" || mode[state.data.queueId] == "Gewertet" || mode[state.data.queueId] == "Spike Rush" || mode[state.data.queueId] == "Schneeballschlacht"|| mode[state.data.queueId] == "Custom Games" || mode[state.data.queueId] == "Escalation") {
+            if(mode[state.data.queueId] == "Ungewertet" || mode[state.data.queueId] == "Gewertet" || mode[state.data.queueId] == "Spike Rush" || mode[state.data.queueId] == "Schneeballschlacht"|| mode[state.data.queueId] == "Custom Games" || mode[state.data.queueId] == "Escalation"|| mode[state.data.queueId] == "Fracture") {
                 if(document.getElementById("matchavailable")) {
                     var own_team_array = coregamejson.data.Players.filter(item => item.Subject == coregamejson.subject)
                     var own_team = own_team_array[0].TeamID
@@ -206,7 +205,10 @@
         async function ingame(state) {
             var coregame = await fetch("http://127.0.0.1:5000/v1/core-game")
             var coregamejson = await coregame.json()
-            if(mode[state.data.queueId] == "Spike Rush" || mode[state.data.queueId] == "NewMap" || mode[state.data.queueId] == "Schneeballschlacht"|| mode[state.data.queueId] == "Custom Games"|| mode[state.data.queueId] == "Ungewertet" || mode[state.data.queueId] == "Gewertet" || mode[state.data.queueId] == "Escalation") {
+            console.log("log1")
+            console.log(state.data.queueId)
+            console.log(mode)
+            if(mode[state.data.queueId] == "Spike Rush" || mode[state.data.queueId] == "Schneeballschlacht"|| mode[state.data.queueId] == "Custom Games"|| mode[state.data.queueId] == "Ungewertet" || mode[state.data.queueId] == "Gewertet" || mode[state.data.queueId] == "Escalation"|| mode[state.data.queueId] == "Fracture") {
                 if(!document.getElementById("matchavailable")) {
                     var own_team_array = coregamejson.data.Players.filter(item => item.Subject == coregamejson.subject)
                     var own_team = own_team_array[0].TeamID
