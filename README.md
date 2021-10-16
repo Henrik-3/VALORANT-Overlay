@@ -9,7 +9,11 @@ VALORANT Stream Overlay (Project was initialized for the VALORANT DE Discord, th
 
 # Functions
 - Get rank and mmr of your allys and enemys [READY]
+<<<<<<< HEAD
 - Support for all gamemodes [READY]
+=======
+- Support for all gamemodes [READY] [Customs party working]
+>>>>>>> 2bd4a3cc5a751b0157ea837d0665adaf00ace345
 
 ![unknown (1)](https://user-images.githubusercontent.com/43936184/132141274-a64f9327-5eb7-44bb-a79d-3da9caf36d24.png)
 
