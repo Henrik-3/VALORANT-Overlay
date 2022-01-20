@@ -35,7 +35,9 @@ var data = async function () {
             httpsAgent: new https.Agent({
                 rejectUnauthorized: false,
             })
-        })
+        }).catch( error => {
+		// handle error
+		})
     } else {
         wsdata = null
         console.log("Valorant ist nicht geöffnet, versuche es in 10 Sekunden erneut ...")
